@@ -71,9 +71,7 @@ class RiskLevel(str, Enum):
 
 class PredictionResult(BaseModel):
     """Output schema for prediction result."""
-    accident_risk: Optional[float] = Field(None, description="Predicted accident risk (0.0-1.0)")
-    risk_level: Optional[RiskLevel] = None
-    risk_percentage: Optional[float] = Field(None, description="Risk as percentage (0-100)")
+    accident_risk_level: Optional[RiskLevel] = Field(None, description="Predicted accident risk level")
     input_data: Optional[dict] = None
     error: Optional[str] = None
 

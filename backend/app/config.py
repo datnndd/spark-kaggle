@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 
 # Spark configuration
 SPARK_APP_NAME = "TrafficAccidentPredictor"
-MODEL_PATH = os.path.join(BASE_DIR, "accident_risk_pipeline_v1")
+MODEL_PATH = os.path.join(BASE_DIR, "traffic_lr_model")
 
 # API configuration
 API_PREFIX = "/api"
@@ -21,10 +21,3 @@ ROAD_TYPES = ["urban", "rural", "highway"]
 LIGHTING_OPTIONS = ["daylight", "dim", "night"]
 WEATHER_OPTIONS = ["clear", "rainy", "foggy"]
 TIME_OF_DAY_OPTIONS = ["morning", "afternoon", "evening", "night"]
-
-# Risk level thresholds
-RISK_THRESHOLDS = {
-    "low": 0.3,
-    "medium": 0.6,
-    "high": 1.0
-}

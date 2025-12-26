@@ -14,6 +14,7 @@ class SparkService:
     _instance: Optional['SparkService'] = None
     _spark: Optional[SparkSession] = None
     _model: Optional[PipelineModel] = None
+    _label_map: Optional[Dict[int, str]] = None
     
     def __new__(cls):
         if cls._instance is None:
@@ -43,7 +44,31 @@ class SparkService:
         """Get or load the ML pipeline model."""
         if self._model is None:
             self._model = PipelineModel.load(MODEL_PATH)
+            # Extract label mapping from StringIndexer
+            self._extract_label_map()
         return self._model
+    
+    def _extract_label_map(self):
+        """Extract label mapping from the StringIndexer stage for the target variable."""
+        if self._model is None:
+            return
+        
+        # The first stage (index 0) is the StringIndexer for accident_risk_level
+        # It transforms the target column to numeric labels
+        stage0 = self._model.stages[0]
+        if hasattr(stage0, 'labels'):
+            labels = stage0.labels
+            self._label_map = {i: label for i, label in enumerate(labels)}
+            return
+        
+        # Default mapping if not found
+        self._label_map = {0: "low", 1: "high", 2: "medium"}
+    
+    def get_label_map(self) -> Dict[int, str]:
+        """Get the label mapping for predictions."""
+        if self._label_map is None:
+            _ = self.model  # Force model load which extracts label map
+        return self._label_map or {0: "low", 1: "high", 2: "medium"}
     
     def get_input_schema(self) -> StructType:
         """Define the schema for input data."""
@@ -65,59 +90,82 @@ class SparkService:
     def add_engineered_features(self, df):
         """Add feature engineering columns required by the pipeline.
         
-        The trained pipeline expects these derived features:
-        - lighting_bin: Binned version of lighting (e.g., 'day' vs 'night')
-        - is_night: Boolean flag for night conditions
-        - bad_visibility: Boolean flag for poor visibility (night + bad weather)
-        - curvature_x_weather: Interaction feature between curvature and weather
+        Based on the LogisticRegression notebook, the model expects these derived features:
+        - is_night: 1 if lighting == 'night'
+        - bad_weather: 1 if weather in ('foggy', 'rainy')
+        - high_curvature: 1 if curvature >= 0.5
+        - high_speed: 1 if speed_limit >= 60
+        - night_high_curvature: is_night * high_curvature
+        - night_high_speed: is_night * high_speed
+        - high_curvature_bad_weather: high_curvature * bad_weather
+        - curvature_x_night: curvature * is_night
+        - speed_x_night: speed_limit * is_night
+        - road_signs_present_i, public_road_i, holiday_i, school_season_i: boolean to int
         """
-        # Create lighting_bin (simplify lighting to day/night categories)
-        df = df.withColumn(
-            "lighting_bin",
-            F.when(F.col("lighting") == "night", "night")
-             .when(F.col("lighting") == "dim", "dim")
-             .otherwise("day")
-        )
-        
         # is_night: 1 if lighting is "night", else 0
         df = df.withColumn(
             "is_night",
-            F.when(F.col("lighting") == "night", 1).otherwise(0)
+            (F.col("lighting") == "night").cast("int")
         )
         
-        # bad_visibility: 1 if (night or dim) AND (rainy or foggy)
+        # bad_weather: 1 if weather is foggy or rainy
         df = df.withColumn(
-            "bad_visibility",
-            F.when(
-                (F.col("lighting").isin(["night", "dim"])) & 
-                (F.col("weather").isin(["rainy", "foggy"])),
-                1
-            ).otherwise(0)
+            "bad_weather",
+            F.col("weather").isin("foggy", "rainy").cast("int")
         )
         
-        # curvature_x_weather: curvature multiplied by weather risk factor
-        # Weather risk: clear=0, rainy=1, foggy=2
+        # high_curvature: 1 if curvature >= 0.5
         df = df.withColumn(
-            "weather_risk",
-            F.when(F.col("weather") == "foggy", 2.0)
-             .when(F.col("weather") == "rainy", 1.0)
-             .otherwise(0.0)
-        )
-        df = df.withColumn(
-            "curvature_x_weather",
-            F.col("curvature") * (1 + F.col("weather_risk"))
+            "high_curvature",
+            (F.col("curvature") >= 0.5).cast("int")
         )
         
-        # Convert boolean columns to integers (required by VectorAssembler)
-        df = df.withColumn("road_signs_present", F.col("road_signs_present").cast("int"))
-        df = df.withColumn("public_road", F.col("public_road").cast("int"))
-        df = df.withColumn("holiday", F.col("holiday").cast("int"))
-        df = df.withColumn("school_season", F.col("school_season").cast("int"))
+        # high_speed: 1 if speed_limit >= 60
+        df = df.withColumn(
+            "high_speed",
+            (F.col("speed_limit") >= 60).cast("int")
+        )
+        
+        # Interaction features
+        df = df.withColumn(
+            "night_high_curvature",
+            (F.col("is_night") * F.col("high_curvature")).cast("int")
+        )
+        
+        df = df.withColumn(
+            "night_high_speed",
+            (F.col("is_night") * F.col("high_speed")).cast("int")
+        )
+        
+        df = df.withColumn(
+            "high_curvature_bad_weather",
+            (F.col("high_curvature") * F.col("bad_weather")).cast("int")
+        )
+        
+        # Continuous interaction features
+        df = df.withColumn(
+            "curvature_x_night",
+            F.col("curvature") * F.col("is_night")
+        )
+        
+        df = df.withColumn(
+            "speed_x_night",
+            F.col("speed_limit") * F.col("is_night")
+        )
+        
+        # Convert boolean columns to integers with _i suffix
+        df = df.withColumn("road_signs_present_i", F.col("road_signs_present").cast("int"))
+        df = df.withColumn("public_road_i", F.col("public_road").cast("int"))
+        df = df.withColumn("holiday_i", F.col("holiday").cast("int"))
+        df = df.withColumn("school_season_i", F.col("school_season").cast("int"))
         
         return df
     
-    def predict_single(self, data: Dict[str, Any]) -> float:
-        """Make prediction for a single input."""
+    def predict_single(self, data: Dict[str, Any]) -> str:
+        """Make prediction for a single input.
+        
+        Returns the predicted risk level as a string ('low', 'medium', or 'high').
+        """
         # Convert data to row format
         row_data = [(
             data["road_type"],
@@ -142,13 +190,17 @@ class SparkService:
         
         # Make prediction
         predictions = self.model.transform(df)
-        result = predictions.select("prediction").collect()[0]["prediction"]
+        prediction_idx = int(predictions.select("prediction").collect()[0]["prediction"])
         
-        # Clamp result between 0 and 1
-        return max(0.0, min(1.0, float(result)))
+        # Map prediction to risk level
+        label_map = self.get_label_map()
+        return label_map.get(prediction_idx, "medium")
     
-    def predict_batch(self, data_list: List[Dict[str, Any]]) -> List[float]:
-        """Make predictions for multiple inputs."""
+    def predict_batch(self, data_list: List[Dict[str, Any]]) -> List[str]:
+        """Make predictions for multiple inputs.
+        
+        Returns a list of risk levels as strings ('low', 'medium', or 'high').
+        """
         # Convert data to rows
         rows = [
             (
@@ -178,7 +230,8 @@ class SparkService:
         predictions = self.model.transform(df)
         results = predictions.select("prediction").collect()
         
-        return [max(0.0, min(1.0, float(r["prediction"]))) for r in results]
+        label_map = self.get_label_map()
+        return [label_map.get(int(r["prediction"]), "medium") for r in results]
     
     def is_model_loaded(self) -> bool:
         """Check if model is loaded."""

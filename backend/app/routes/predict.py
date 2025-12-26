@@ -1,6 +1,5 @@
 """Prediction routes."""
 import io
-import csv
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 import pandas as pd
@@ -13,27 +12,14 @@ from app.models import (
     RiskLevel
 )
 from app.spark_service import spark_service
-from app.config import RISK_THRESHOLDS
 
 router = APIRouter(prefix="/predict", tags=["predictions"])
 
 
-def get_risk_level(risk: float) -> RiskLevel:
-    """Determine risk level based on thresholds."""
-    if risk < RISK_THRESHOLDS["low"]:
-        return RiskLevel.LOW
-    elif risk < RISK_THRESHOLDS["medium"]:
-        return RiskLevel.MEDIUM
-    else:
-        return RiskLevel.HIGH
-
-
-def create_prediction_result(risk: float, input_data: dict = None) -> PredictionResult:
-    """Create a PredictionResult from risk value."""
+def create_prediction_result(risk_level: str, input_data: dict = None) -> PredictionResult:
+    """Create a PredictionResult from risk level string."""
     return PredictionResult(
-        accident_risk=round(risk, 4),
-        risk_level=get_risk_level(risk),
-        risk_percentage=round(risk * 100, 2),
+        accident_risk_level=RiskLevel(risk_level),
         input_data=input_data
     )
 
@@ -43,7 +29,7 @@ async def predict_single(input_data: PredictionInput):
     """
     Predict accident risk for a single road segment.
     
-    Returns the predicted accident risk (0-1), risk level, and percentage.
+    Returns the predicted accident risk level (low/medium/high).
     """
     try:
         # Convert Pydantic model to dict with enum values as strings
@@ -62,8 +48,8 @@ async def predict_single(input_data: PredictionInput):
             "num_reported_accidents": input_data.num_reported_accidents,
         }
         
-        risk = spark_service.predict_single(data)
-        return create_prediction_result(risk, data)
+        risk_level = spark_service.predict_single(data)
+        return create_prediction_result(risk_level, data)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
@@ -129,36 +115,30 @@ async def predict_batch(file: UploadFile = File(...)):
         
         # Make predictions only for valid rows
         if valid_data:
-            risks = spark_service.predict_batch(valid_data)
-            for i, risk in enumerate(risks):
+            risk_levels = spark_service.predict_batch(valid_data)
+            for i, risk_level in enumerate(risk_levels):
                 original_idx = valid_indices[i]
                 data = valid_data[i]
-                all_results[original_idx] = create_prediction_result(risk, data)
+                all_results[original_idx] = create_prediction_result(risk_level, data)
         
-        # Filter out any lingering Nones (shouldn't happen if logic is correct)
+        # Filter out any lingering Nones
         predictions = [res for res in all_results if res is not None]
         
         # Calculate summary statistics
         valid_predictions = [p for p in predictions if p.error is None]
-        risks = [p.accident_risk for p in valid_predictions]
         
-        avg_risk = sum(risks) / len(risks) if risks else 0
-        risk_counts = {
-            "low": sum(1 for r in risks if r < RISK_THRESHOLDS["low"]),
-            "medium": sum(1 for r in risks if RISK_THRESHOLDS["low"] <= r < RISK_THRESHOLDS["medium"]),
-            "high": sum(1 for r in risks if r >= RISK_THRESHOLDS["medium"]),
-        }
+        # Count by risk level
+        risk_counts = {"low": 0, "medium": 0, "high": 0}
+        for p in valid_predictions:
+            if p.accident_risk_level:
+                risk_counts[p.accident_risk_level.value] += 1
         
         return BatchPredictionResult(
             predictions=predictions,
             total_count=len(predictions),
             summary={
-                "average_risk": round(avg_risk, 4),
-                "average_percentage": round(avg_risk * 100, 2),
                 "risk_distribution": risk_counts,
                 "error_count": len(predictions) - len(valid_predictions),
-                "min_risk": round(min(risks), 4) if risks else 0,
-                "max_risk": round(max(risks), 4) if risks else 0,
             }
         )
     

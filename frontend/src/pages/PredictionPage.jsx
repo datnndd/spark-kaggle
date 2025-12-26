@@ -86,6 +86,15 @@ export default function PredictionPage() {
         }
     };
 
+    const getRiskLabel = (level) => {
+        switch (level) {
+            case 'low': return '✅ Low Risk';
+            case 'medium': return '⚠️ Medium Risk';
+            case 'high': return '🚨 High Risk';
+            default: return level;
+        }
+    };
+
     return (
         <main className="flex-grow p-6 max-w-7xl mx-auto w-full space-y-8">
             {/* Header */}
@@ -97,7 +106,7 @@ export default function PredictionPage() {
                     Traffic Accident Risk Prediction
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">
-                    Enter road and environmental conditions to predict accident probability, or upload a CSV for batch analysis.
+                    Enter road and environmental conditions to predict accident risk level, or upload a CSV for batch analysis.
                 </p>
             </header>
 
@@ -299,20 +308,18 @@ export default function PredictionPage() {
 
                     {/* Single Result Display */}
                     {result && (
-                        <div className={`animation-fade-in-up max-w-2xl mx-auto border rounded-2xl p-8 text-center ${getRiskBg(result.risk_level)}`}>
+                        <div className={`animation-fade-in-up max-w-2xl mx-auto border rounded-2xl p-8 text-center ${getRiskBg(result.accident_risk_level)}`}>
                             <div className="mb-6">
-                                <span className="material-icons-round text-6xl mb-4 block" style={{ color: result.risk_level === 'low' ? '#10b981' : result.risk_level === 'medium' ? '#f59e0b' : '#ef4444' }}>
-                                    {result.risk_level === 'low' ? 'check_circle' : result.risk_level === 'medium' ? 'warning' : 'error'}
+                                <span className="material-icons-round text-6xl mb-4 block" style={{ color: result.accident_risk_level === 'low' ? '#10b981' : result.accident_risk_level === 'medium' ? '#f59e0b' : '#ef4444' }}>
+                                    {result.accident_risk_level === 'low' ? 'check_circle' : result.accident_risk_level === 'medium' ? 'warning' : 'error'}
                                 </span>
-                                <p className="text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Accident Risk Assessment</p>
-                                <p className={`text-5xl font-bold ${getRiskColor(result.risk_level)}`}>
-                                    {result.risk_percentage.toFixed(1)}%
+                                <p className="text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Accident Risk Level</p>
+                                <p className={`text-4xl font-bold uppercase ${getRiskColor(result.accident_risk_level)}`}>
+                                    {result.accident_risk_level}
                                 </p>
                             </div>
-                            <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold uppercase ${getRiskBg(result.risk_level)}`}>
-                                {result.risk_level === 'low' && '✅ Low Risk Zone'}
-                                {result.risk_level === 'medium' && '⚠️ Moderate Risk'}
-                                {result.risk_level === 'high' && '🚨 High Risk Alert'}
+                            <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${getRiskBg(result.accident_risk_level)}`}>
+                                {getRiskLabel(result.accident_risk_level)}
                             </div>
                         </div>
                     )}
@@ -368,10 +375,6 @@ export default function PredictionPage() {
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Total Records</p>
                                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{batchResults.total_count}</p>
                             </div>
-                            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Average Risk</p>
-                                <p className="text-2xl font-bold text-primary">{batchResults.summary.average_percentage.toFixed(1)}%</p>
-                            </div>
                             <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
                                 <p className="text-sm text-red-600 dark:text-red-400 mb-1">Err_data</p>
                                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">{batchResults.summary.error_count}</p>
@@ -404,30 +407,18 @@ export default function PredictionPage() {
                             </div>
 
                             <div className="space-y-4">
-                                <h4 className="font-semibold text-slate-900 dark:text-white mb-2">Risk Level Definitions</h4>
-                                <div className="flex items-start gap-3">
-                                    <span className="w-3 h-3 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
-                                    <div>
-                                        <p className="font-medium text-slate-900 dark:text-white">Low Risk</p>
-                                        <p className="text-xs text-slate-500">Probability &lt; 30%</p>
-                                        <p className="text-xs text-slate-400 mt-0.5">Safe driving conditions.</p>
-                                    </div>
+                                <h4 className="font-semibold text-slate-900 dark:text-white mb-2">Risk Level Distribution</h4>
+                                <div className="flex items-center gap-3">
+                                    <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span>
+                                    <span className="font-medium text-slate-900 dark:text-white">Low: {batchResults.summary.risk_distribution.low}</span>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 shrink-0"></span>
-                                    <div>
-                                        <p className="font-medium text-slate-900 dark:text-white">Medium Risk</p>
-                                        <p className="text-xs text-slate-500">30% &le; Probability &lt; 60%</p>
-                                        <p className="text-xs text-slate-400 mt-0.5">Caution advised.</p>
-                                    </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
+                                    <span className="font-medium text-slate-900 dark:text-white">Medium: {batchResults.summary.risk_distribution.medium}</span>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="w-3 h-3 rounded-full bg-red-500 mt-1.5 shrink-0"></span>
-                                    <div>
-                                        <p className="font-medium text-slate-900 dark:text-white">High Risk</p>
-                                        <p className="text-xs text-slate-500">Probability &ge; 60%</p>
-                                        <p className="text-xs text-slate-400 mt-0.5">Dangerous conditions.</p>
-                                    </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
+                                    <span className="font-medium text-slate-900 dark:text-white">High: {batchResults.summary.risk_distribution.high}</span>
                                 </div>
                             </div>
                         </div>
@@ -443,7 +434,7 @@ export default function PredictionPage() {
                             <table className="w-full text-sm text-left">
                                 <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
                                     <tr>
-                                        <th className="px-4 py-3 whitespace-nowrap">accident_risk</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">accident_risk_level</th>
                                         <th className="px-4 py-3 whitespace-nowrap">Road Type</th>
                                         <th className="px-4 py-3 whitespace-nowrap">Lanes</th>
                                         <th className="px-4 py-3 whitespace-nowrap">Curvature</th>
@@ -462,14 +453,14 @@ export default function PredictionPage() {
                                     {batchResults.predictions.slice(0, 10).map((row, idx) => (
                                         <tr key={idx} className={`transition-colors 
                                             ${row.error ? 'bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-200/50' :
-                                                row.risk_level === 'low' ? 'bg-emerald-50/50 dark:bg-emerald-900/10 hover:bg-emerald-100/50' :
-                                                    row.risk_level === 'medium' ? 'bg-yellow-50/50 dark:bg-yellow-900/10 hover:bg-yellow-100/50' :
+                                                row.accident_risk_level === 'low' ? 'bg-emerald-50/50 dark:bg-emerald-900/10 hover:bg-emerald-100/50' :
+                                                    row.accident_risk_level === 'medium' ? 'bg-yellow-50/50 dark:bg-yellow-900/10 hover:bg-yellow-100/50' :
                                                         'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/50'}`}>
-                                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-white uppercase">
                                                 {row.error ? (
                                                     <span className="text-xs text-red-500 font-normal" title={row.error}>ERROR</span>
                                                 ) : (
-                                                    row.accident_risk?.toFixed(4)
+                                                    row.accident_risk_level
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize whitespace-nowrap">{row.input_data.road_type}</td>
@@ -497,7 +488,7 @@ export default function PredictionPage() {
                                 'road_type', 'num_lanes', 'curvature', 'speed_limit', 'lighting',
                                 'weather', 'road_signs_present', 'public_road', 'time_of_day',
                                 'holiday', 'school_season', 'num_reported_accidents',
-                                'accident_risk'
+                                'accident_risk_level'
                             ];
 
                             const csvContent = [
@@ -517,7 +508,7 @@ export default function PredictionPage() {
                                         data.holiday,
                                         data.school_season,
                                         data.num_reported_accidents,
-                                        row.error ? '' : row.accident_risk
+                                        row.error ? '' : row.accident_risk_level
                                     ].join(',');
                                 })
                             ].join('\n');
