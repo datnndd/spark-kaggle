@@ -1,68 +1,109 @@
-# Traffic Accident Risk Prediction (Kaggle Playground Series)
+# Traffic Accident Risk Prediction Platform
 
 ## Overview
-This project aims to predict the **accident risk** on various road segments using a synthetic dataset from the Kaggle Playground Series. The goal is to build a regression model that accurately predicts the continuous variable `accident_risk` (ranging from 0 to 1) based on road characteristics and environmental factors.
+A comprehensive full-stack application for predicting and visualizing traffic accident risks. This system transforms raw road and environmental data into actionable insights using a **FastAPI** backend, **Apache Spark** for data processing, and a modern **React** dashboard for visualization.
 
-## Dataset
-The dataset is synthetic but mimics real-world traffic data. It includes the following key features:
--   **Road Characteristics**: `road_type`, `num_lanes`, `curvature`, `speed_limit`, `road_signs_present`, `public_road`.
--   **Environmental Factors**: `lighting`, `weather`, `time_of_day`, `holiday`, `school_season`.
--   **History**: `num_reported_accidents`.
--   **Target**: `accident_risk` (Continuous, 0.0 - 1.0).
+## Key Features
+-   **Interactive Dashboard**: Real-time visualization of accident statistics, risk factors, and model performance using Chart.js.
+-   **Batch Risk Prediction**: Upload CSV files to generate risk assessments for multiple road segments simultaneously.
+-   **Big Data Processing**: Leverages PySpark to handle large datasets efficiently.
+-   **User Management**: Role-based access control for administrators and standard users.
+-   **Containerized Deployment**: fully Dockerized environment for consistent deployment across platforms.
 
-## Prerequisites
-To run this project, you need the following environment:
--   **Python 3.x**
--   **Apache Spark (PySpark)**
--   **Jupyter Notebook** or **Databricks**
+## Technology Stack
+### Backend
+-   **Framework**: FastAPI
+-   **Data Processing**: Apache Spark (PySpark), Pandas, NumPy
+-   **Database**: SQLite (default) / PostgreSQL (supported)
 
-### Required Libraries
-```python
-pyspark
-pandas
-matplotlib
-seaborn
-numpy
-```
+### Frontend
+-   **Framework**: React (Vite)
+-   **Styling**: TailwindCSS
+-   **Visualization**: Chart.js, React-Chartjs-2
+-   **State Management**: React Hooks
+
+### DevOps
+-   **Containerization**: Docker, Docker Compose
+
+## Getting Started
+
+### Prerequisites
+-   Docker & Docker Compose (Recommended)
+-   *Or for local dev*: Python 3.10+, Node.js 18+, Java 17 (for Spark)
+
+### Quick Start (Docker)
+The easiest way to run the application is using Docker Compose.
+
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd spark-kaggle
+    ```
+
+2.  **Start the services**
+    ```bash
+    docker-compose up --build
+    ```
+    This will start:
+    -   Backend API at `http://localhost:8000`
+    -   Frontend Dashboard at `http://localhost:3000`
+
+### Local Development Setup
+
+#### Backend
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
+2.  Create and activate a virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Run the application:
+    ```bash
+    python run.py
+    ```
+
+#### Frontend
+1.  Navigate to the frontend directory:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+## Data Analysis Pipeline
+The original data analysis and model training pipeline is documented in `Bigdata.ipynb`.
+-   **EDA**: Exploratory Data Analysis identifying correlations between road curvature, lighting, and accident risk.
+-   **Model**: Linear Regression (baseline) trained on Spark MLlib.
 
 ## Project Structure
--   `Bigdata.ipynb`: The main Jupyter Notebook containing the End-to-End analysis and modeling pipeline.
--   `train.csv` / `test.csv`: Data files (expected in `/Volumes/workspace/default/road/` or your local data directory).
-
-## Methodology
-
-### 1. Exploratory Data Analysis (EDA)
-Comprehensive analysis was performed to understand the data:
--   **Data Quality**: The dataset is clean with no missing values.
--   **Target Distribution**: `accident_risk` is slightly right-skewed with a mean of ~0.35.
--   **Key Insights**:
-    -   **Curvature**: Strong non-linear relationship. Risk jumps significantly when curvature > 0.5.
-    -   **Lighting**: "Night" driving significantly increases accident risk compared to "Daylight" or "Dim" conditions.
-    -   **Speed Limit**: Higher speed limits correlate with higher risk, specifically in the 60-70 range.
-    -   **Num Lanes**: Found to have **no correlation** with accident risk (potential candidate for feature dropping).
-
-### 2. Feature Engineering
--   **StringIndexer**: Used to convert categorical variables (`road_type`, `lighting`, `weather`, etc.) into numerical indices for the model.
--   **VectorAssembler**: Combines all features into a single vector column required by Spark MLlib.
-
-### 3. Modeling
-A **Linear Regression** model was implemented as a baseline using Spark MLlib.
--   **Split**: 70% Training, 30% Testing.
--   **Evaluation Metric**: Root Mean Squared Error (RMSE) and R-squared ($R^2$).
-
-## Results
-*Note: Specific model performance metrics (RMSE, R2) can be found in the notebook output.*
-
-The analysis suggests that tree-based models (like Random Forest or Gradient Boosting) would likely outperform Linear Regression due to the non-linear nature of features like `curvature`.
-
-## Usage
-1.  Ensure PySpark is installed and configured.
-2.  Update the file paths in the notebook to point to your `train.csv` and `test.csv` locations:
-    ```python
-    df_train = spark.read.csv("/path/to/train.csv", header=True, inferSchema=True)
-    df_test = spark.read.csv("/path/to/test.csv", header=True, inferSchema=True)
-    ```
-3.  Run all cells in `Bigdata.ipynb` to execute the EDA and training pipeline.
+```
+spark-kaggle/
+├── backend/                # FastAPI application
+│   ├── app/                # Application logic (routes, models, services)
+│   ├── run.py              # Entry point
+│   └── Dockerfile
+├── frontend/               # React application
+│   ├── src/                # Components, pages, assets
+│   ├── public/             # Static files
+│   └── Dockerfile
+├── accident_risk_pipeline/ # Spark pipeline artifacts
+├── docker-compose.yml      # Orchestration
+├── Bigdata.ipynb           # Original analysis notebook
+└── README.md               # This file
+```
 
 ## Author
 Doan Dat
