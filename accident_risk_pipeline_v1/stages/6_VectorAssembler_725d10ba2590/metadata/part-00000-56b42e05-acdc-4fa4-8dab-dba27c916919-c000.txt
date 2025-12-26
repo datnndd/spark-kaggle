@@ -1,1 +1,0 @@
-{"class":"org.apache.spark.ml.feature.VectorAssembler","timestamp":1766669404750,"sparkVersion":"4.0.1","uid":"VectorAssembler_725d10ba2590","paramMap":{"inputCols":["road_type_vec","lighting_bin_vec","time_of_day_vec","num_scaled"],"outputCol":"features"},"defaultParamMap":{"handleInvalid":"error","outputCol":"VectorAssembler_725d10ba2590__output"}}

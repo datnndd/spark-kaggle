@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.OneHotEncoderModel","timestamp":1766766826300,"sparkVersion":"4.0.1","uid":"OneHotEncoder_a6b9be0fbf7d","paramMap":{"dropLast":true,"inputCol":"weather_idx","outputCol":"weather_ohe"},"defaultParamMap":{"dropLast":true,"handleInvalid":"error","outputCol":"OneHotEncoder_a6b9be0fbf7d__output"}}
