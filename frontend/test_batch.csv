@@ -1,0 +1,12 @@
+road_type,num_lanes,curvature,speed_limit,lighting,weather,road_signs_present,public_road,time_of_day,holiday,school_season,num_reported_accidents
+urban,2,0.1,35,daylight,clear,true,true,afternoon,false,true,0
+rural,1,0.5,50,night,rainy,false,true,night,false,false,2
+highway,3,0.05,70,daylight,clear,true,true,morning,false,false,1
+urban,2,0.2,30,dim,foggy,true,true,evening,true,true,0
+rural,1,0.8,45,daylight,rainy,false,false,afternoon,false,false,3
+highway,4,0.02,65,night,clear,true,true,night,false,false,0
+urban,2,0.1,25,daylight,clear,true,true,morning,true,true,0
+urban,3,0.15,40,dim,rainy,true,true,evening,false,false,1
+rural,1,0.6,55,night,foggy,false,true,night,false,false,4
+highway,3,0.05,75,daylight,clear,true,true,afternoon,false,false,1
+urban,2,0.1,35,daylight,rainy,true,true,morning,false,true,0

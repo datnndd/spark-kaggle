@@ -4,6 +4,7 @@ import csv
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 import pandas as pd
+from pydantic import ValidationError
 
 from app.models import (
     PredictionInput, 
@@ -102,16 +103,45 @@ async def predict_batch(file: UploadFile = File(...)):
         # Convert DataFrame to list of dicts
         data_list = df[required_columns].to_dict('records')
         
-        # Make batch predictions
-        risks = spark_service.predict_batch(data_list)
+        # Validate each row and prepare for processing
+        valid_indices = []
+        valid_data = []
+        all_results = [None] * len(data_list)
         
-        # Create prediction results
-        predictions = [
-            create_prediction_result(risk, data)
-            for risk, data in zip(risks, data_list)
-        ]
+        for idx, row in enumerate(data_list):
+            try:
+                # Validate
+                PredictionInput(**row)
+                valid_indices.append(idx)
+                valid_data.append(row)
+            except ValidationError as e:
+                # Capture error
+                error_msg = "; ".join([f"{' -> '.join(str(l) for l in err['loc'])}: {err['msg']}" for err in e.errors()])
+                all_results[idx] = PredictionResult(
+                    input_data=row,
+                    error=f"Row {idx + 1}: {error_msg}"
+                )
+            except Exception as e:
+                all_results[idx] = PredictionResult(
+                    input_data=row,
+                    error=f"Row {idx + 1}: {str(e)}"
+                )
         
-        # Calculate summary
+        # Make predictions only for valid rows
+        if valid_data:
+            risks = spark_service.predict_batch(valid_data)
+            for i, risk in enumerate(risks):
+                original_idx = valid_indices[i]
+                data = valid_data[i]
+                all_results[original_idx] = create_prediction_result(risk, data)
+        
+        # Filter out any lingering Nones (shouldn't happen if logic is correct)
+        predictions = [res for res in all_results if res is not None]
+        
+        # Calculate summary statistics
+        valid_predictions = [p for p in predictions if p.error is None]
+        risks = [p.accident_risk for p in valid_predictions]
+        
         avg_risk = sum(risks) / len(risks) if risks else 0
         risk_counts = {
             "low": sum(1 for r in risks if r < RISK_THRESHOLDS["low"]),
@@ -126,6 +156,7 @@ async def predict_batch(file: UploadFile = File(...)):
                 "average_risk": round(avg_risk, 4),
                 "average_percentage": round(avg_risk * 100, 2),
                 "risk_distribution": risk_counts,
+                "error_count": len(predictions) - len(valid_predictions),
                 "min_risk": round(min(risks), 4) if risks else 0,
                 "max_risk": round(max(risks), 4) if risks else 0,
             }

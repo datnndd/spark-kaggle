@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { predictSingle, predictBatch } from '../api/predictions';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 /**
  * Prediction page component
@@ -103,8 +107,8 @@ export default function PredictionPage() {
                     <button
                         onClick={() => { setActiveTab('manual'); setBatchResults(null); }}
                         className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'manual'
-                                ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                            ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                             }`}
                     >
                         <span className="material-icons-round text-sm mr-2 align-middle">edit</span>
@@ -113,8 +117,8 @@ export default function PredictionPage() {
                     <button
                         onClick={() => { setActiveTab('batch'); setResult(null); }}
                         className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'batch'
-                                ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                            ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                             }`}
                     >
                         <span className="material-icons-round text-sm mr-2 align-middle">upload_file</span>
@@ -132,181 +136,186 @@ export default function PredictionPage() {
             )}
 
             {/* Manual Input Form */}
-            {activeTab === 'manual' && !result && (
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Road Characteristics */}
-                    <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
-                        <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <span className="material-icons-round">route</span>
-                            Road Characteristics
-                        </h3>
+            {activeTab === 'manual' && (
+                <div className="space-y-8">
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Road Characteristics */}
+                        <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <span className="material-icons-round">route</span>
+                                Road Characteristics
+                            </h3>
 
-                        <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Road Type</label>
-                                <select name="road_type" value={formData.road_type} onChange={handleChange}
-                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent">
-                                    <option value="urban">Urban</option>
-                                    <option value="rural">Rural</option>
-                                    <option value="highway">Highway</option>
-                                </select>
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Road Type</label>
+                                    <select name="road_type" value={formData.road_type} onChange={handleChange}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+                                        <option value="urban">Urban</option>
+                                        <option value="rural">Rural</option>
+                                        <option value="highway">Highway</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Number of Lanes
+                                    </label>
+                                    <input type="number" name="num_lanes" min="1" max="8" step="1" value={formData.num_lanes} onChange={handleChange}
+                                        placeholder="e.g., 2"
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Typical: 1-4 lanes (max 8)</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Road Curvature
+                                    </label>
+                                    <input type="number" name="curvature" min="0" max="1" step="0.01" value={formData.curvature} onChange={handleChange}
+                                        placeholder="e.g., 0.1"
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">0 = Straight, 1 = Very curved (typical: 0.05-0.3)</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Speed Limit (mph)
+                                    </label>
+                                    <input type="number" name="speed_limit" min="15" max="75" step="5" value={formData.speed_limit} onChange={handleChange}
+                                        placeholder="e.g., 35"
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Urban: 25-35, Highway: 55-75</p>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Road Signs Present</label>
+                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, road_signs_present: !prev.road_signs_present }))}
+                                        className={`w-12 h-6 rounded-full transition-colors ${formData.road_signs_present ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                        <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.road_signs_present ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Public Road</label>
+                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, public_road: !prev.public_road }))}
+                                        className={`w-12 h-6 rounded-full transition-colors ${formData.public_road ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                        <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.public_road ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                    </button>
+                                </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Number of Lanes: <span className="text-primary">{formData.num_lanes}</span>
-                                </label>
-                                <input type="range" name="num_lanes" min="1" max="8" step="1" value={formData.num_lanes} onChange={handleChange}
-                                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary" />
+                        {/* Environmental Factors */}
+                        <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <span className="material-icons-round">wb_sunny</span>
+                                Environmental Factors
+                            </h3>
+
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lighting</label>
+                                    <select name="lighting" value={formData.lighting} onChange={handleChange}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary">
+                                        <option value="daylight">☀️ Daylight</option>
+                                        <option value="dim">🌅 Dim</option>
+                                        <option value="night">🌙 Night</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Weather</label>
+                                    <select name="weather" value={formData.weather} onChange={handleChange}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary">
+                                        <option value="clear">☀️ Clear</option>
+                                        <option value="rainy">🌧️ Rainy</option>
+                                        <option value="foggy">🌫️ Foggy</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Time of Day</label>
+                                    <select name="time_of_day" value={formData.time_of_day} onChange={handleChange}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary">
+                                        <option value="morning">🌅 Morning</option>
+                                        <option value="afternoon">☀️ Afternoon</option>
+                                        <option value="evening">🌆 Evening</option>
+                                    </select>
+                                </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Road Curvature: <span className="text-primary">{(formData.curvature * 100).toFixed(0)}%</span>
-                                </label>
-                                <input type="range" name="curvature" min="0" max="1" step="0.01" value={formData.curvature} onChange={handleChange}
-                                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary" />
-                            </div>
+                        {/* Context Factors */}
+                        <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <span className="material-icons-round">info</span>
+                                Context Factors
+                            </h3>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Speed Limit: <span className="text-primary">{formData.speed_limit} mph</span>
-                                </label>
-                                <input type="range" name="speed_limit" min="15" max="75" step="5" value={formData.speed_limit} onChange={handleChange}
-                                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary" />
-                            </div>
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Holiday Period</label>
+                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, holiday: !prev.holiday }))}
+                                        className={`w-12 h-6 rounded-full transition-colors ${formData.holiday ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                        <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.holiday ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                    </button>
+                                </div>
 
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Road Signs Present</label>
-                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, road_signs_present: !prev.road_signs_present }))}
-                                    className={`w-12 h-6 rounded-full transition-colors ${formData.road_signs_present ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                    <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.road_signs_present ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                                </button>
-                            </div>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">School Season</label>
+                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, school_season: !prev.school_season }))}
+                                        className={`w-12 h-6 rounded-full transition-colors ${formData.school_season ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                        <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.school_season ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                    </button>
+                                </div>
 
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Public Road</label>
-                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, public_road: !prev.public_road }))}
-                                    className={`w-12 h-6 rounded-full transition-colors ${formData.public_road ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                    <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.public_road ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Previous Accidents at Location
+                                    </label>
+                                    <input type="number" name="num_reported_accidents" min="0" max="100" step="1" value={formData.num_reported_accidents} onChange={handleChange}
+                                        placeholder="e.g., 0"
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Number of reported accidents in past year (typical: 0-5)</p>
+                                </div>
+
+                                <button type="submit" disabled={isLoading}
+                                    className="w-full mt-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {isLoading ? (
+                                        <>
+                                            <span className="animate-spin material-icons-round text-xl">refresh</span>
+                                            Analyzing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-icons-round">search</span>
+                                            Predict Risk
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </form>
 
-                    {/* Environmental Factors */}
-                    <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
-                        <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <span className="material-icons-round">wb_sunny</span>
-                            Environmental Factors
-                        </h3>
-
-                        <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lighting</label>
-                                <select name="lighting" value={formData.lighting} onChange={handleChange}
-                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary">
-                                    <option value="daylight">☀️ Daylight</option>
-                                    <option value="dim">🌅 Dim</option>
-                                    <option value="night">🌙 Night</option>
-                                </select>
+                    {/* Single Result Display */}
+                    {result && (
+                        <div className={`animation-fade-in-up max-w-2xl mx-auto border rounded-2xl p-8 text-center ${getRiskBg(result.risk_level)}`}>
+                            <div className="mb-6">
+                                <span className="material-icons-round text-6xl mb-4 block" style={{ color: result.risk_level === 'low' ? '#10b981' : result.risk_level === 'medium' ? '#f59e0b' : '#ef4444' }}>
+                                    {result.risk_level === 'low' ? 'check_circle' : result.risk_level === 'medium' ? 'warning' : 'error'}
+                                </span>
+                                <p className="text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Accident Risk Assessment</p>
+                                <p className={`text-5xl font-bold ${getRiskColor(result.risk_level)}`}>
+                                    {result.risk_percentage.toFixed(1)}%
+                                </p>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Weather</label>
-                                <select name="weather" value={formData.weather} onChange={handleChange}
-                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary">
-                                    <option value="clear">☀️ Clear</option>
-                                    <option value="rainy">🌧️ Rainy</option>
-                                    <option value="foggy">🌫️ Foggy</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Time of Day</label>
-                                <select name="time_of_day" value={formData.time_of_day} onChange={handleChange}
-                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-border-light dark:border-border-dark rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary">
-                                    <option value="morning">🌅 Morning</option>
-                                    <option value="afternoon">☀️ Afternoon</option>
-                                    <option value="evening">🌆 Evening</option>
-                                    <option value="night">🌙 Night</option>
-                                </select>
+                            <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold uppercase ${getRiskBg(result.risk_level)}`}>
+                                {result.risk_level === 'low' && '✅ Low Risk Zone'}
+                                {result.risk_level === 'medium' && '⚠️ Moderate Risk'}
+                                {result.risk_level === 'high' && '🚨 High Risk Alert'}
                             </div>
                         </div>
-                    </div>
-
-                    {/* Context Factors */}
-                    <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
-                        <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <span className="material-icons-round">info</span>
-                            Context Factors
-                        </h3>
-
-                        <div className="space-y-5">
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Holiday Period</label>
-                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, holiday: !prev.holiday }))}
-                                    className={`w-12 h-6 rounded-full transition-colors ${formData.holiday ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                    <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.holiday ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                                </button>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">School Season</label>
-                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, school_season: !prev.school_season }))}
-                                    className={`w-12 h-6 rounded-full transition-colors ${formData.school_season ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                    <span className={`block w-5 h-5 bg-white rounded-full shadow transform transition-transform ${formData.school_season ? 'translate-x-6' : 'translate-x-0.5'}`} />
-                                </button>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Previous Accidents: <span className="text-primary">{formData.num_reported_accidents}</span>
-                                </label>
-                                <input type="range" name="num_reported_accidents" min="0" max="10" step="1" value={formData.num_reported_accidents} onChange={handleChange}
-                                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary" />
-                            </div>
-
-                            <button type="submit" disabled={isLoading}
-                                className="w-full mt-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                                {isLoading ? (
-                                    <>
-                                        <span className="animate-spin material-icons-round text-xl">refresh</span>
-                                        Analyzing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-icons-round">search</span>
-                                        Predict Risk
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            )}
-
-            {/* Single Result Display */}
-            {result && (
-                <div className={`max-w-md mx-auto border rounded-2xl p-8 text-center ${getRiskBg(result.risk_level)}`}>
-                    <div className="mb-6">
-                        <span className="material-icons-round text-6xl mb-4 block" style={{ color: result.risk_level === 'low' ? '#10b981' : result.risk_level === 'medium' ? '#f59e0b' : '#ef4444' }}>
-                            {result.risk_level === 'low' ? 'check_circle' : result.risk_level === 'medium' ? 'warning' : 'error'}
-                        </span>
-                        <p className="text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Accident Risk Assessment</p>
-                        <p className={`text-5xl font-bold ${getRiskColor(result.risk_level)}`}>
-                            {result.risk_percentage.toFixed(1)}%
-                        </p>
-                    </div>
-                    <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold uppercase ${getRiskBg(result.risk_level)}`}>
-                        {result.risk_level === 'low' && '✅ Low Risk Zone'}
-                        {result.risk_level === 'medium' && '⚠️ Moderate Risk'}
-                        {result.risk_level === 'high' && '🚨 High Risk Alert'}
-                    </div>
-                    <button onClick={() => setResult(null)}
-                        className="mt-6 w-full py-2 text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors">
-                        ← Make Another Prediction
-                    </button>
+                    )}
                 </div>
             )}
 
@@ -345,37 +354,190 @@ export default function PredictionPage() {
 
             {/* Batch Results */}
             {batchResults && (
-                <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6">
+                <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl p-6 animation-fade-in-up">
                     <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-icons-round text-primary">assessment</span>
                         Batch Analysis Results
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                        <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{batchResults.total_count}</p>
-                            <p className="text-xs text-slate-500">Total Records</p>
+
+                    {/* Key Statistics & Chart */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+                        {/* Stats Cards */}
+                        <div className="lg:col-span-1 space-y-4">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Total Records</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{batchResults.total_count}</p>
+                            </div>
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Average Risk</p>
+                                <p className="text-2xl font-bold text-primary">{batchResults.summary.average_percentage.toFixed(1)}%</p>
+                            </div>
+                            <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
+                                <p className="text-sm text-red-600 dark:text-red-400 mb-1">Err_data</p>
+                                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{batchResults.summary.error_count}</p>
+                            </div>
                         </div>
-                        <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                            <p className="text-2xl font-bold text-primary">{batchResults.summary.average_percentage.toFixed(1)}%</p>
-                            <p className="text-xs text-slate-500">Average Risk</p>
-                        </div>
-                        <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                            <p className="text-2xl font-bold text-emerald-500">{batchResults.summary.risk_distribution.low}</p>
-                            <p className="text-xs text-slate-500">Low Risk</p>
-                        </div>
-                        <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                            <p className="text-2xl font-bold text-yellow-500">{batchResults.summary.risk_distribution.medium}</p>
-                            <p className="text-xs text-slate-500">Medium Risk</p>
-                        </div>
-                        <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                            <p className="text-2xl font-bold text-red-500">{batchResults.summary.risk_distribution.high}</p>
-                            <p className="text-xs text-slate-500">High Risk</p>
+
+                        {/* Chart & Legend */}
+                        <div className="lg:col-span-3 bg-slate-50 dark:bg-slate-800 rounded-xl p-6 border border-slate-100 dark:border-slate-700 flex flex-col md:flex-row items-center justify-around gap-8">
+                            <div className="w-48 h-48 relative">
+                                <Pie data={{
+                                    labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                                    datasets: [{
+                                        data: [
+                                            batchResults.summary.risk_distribution.low,
+                                            batchResults.summary.risk_distribution.medium,
+                                            batchResults.summary.risk_distribution.high
+                                        ],
+                                        backgroundColor: [
+                                            '#10b981', // emerald-500
+                                            '#f59e0b', // amber-500
+                                            '#ef4444', // red-500
+                                        ],
+                                        borderWidth: 0,
+                                    }]
+                                }} options={{
+                                    plugins: {
+                                        legend: { display: false }
+                                    }
+                                }} />
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="font-semibold text-slate-900 dark:text-white mb-2">Risk Level Definitions</h4>
+                                <div className="flex items-start gap-3">
+                                    <span className="w-3 h-3 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+                                    <div>
+                                        <p className="font-medium text-slate-900 dark:text-white">Low Risk</p>
+                                        <p className="text-xs text-slate-500">Probability &lt; 30%</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Safe driving conditions.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <span className="w-3 h-3 rounded-full bg-amber-500 mt-1.5 shrink-0"></span>
+                                    <div>
+                                        <p className="font-medium text-slate-900 dark:text-white">Medium Risk</p>
+                                        <p className="text-xs text-slate-500">30% &le; Probability &lt; 60%</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Caution advised.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <span className="w-3 h-3 rounded-full bg-red-500 mt-1.5 shrink-0"></span>
+                                    <div>
+                                        <p className="font-medium text-slate-900 dark:text-white">High Risk</p>
+                                        <p className="text-xs text-slate-500">Probability &ge; 60%</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Dangerous conditions.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button onClick={() => { setBatchResults(null); setFile(null); }}
-                        className="py-2 px-4 text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors">
-                        ← Upload Another File
-                    </button>
+
+                    {/* Preview Table */}
+                    <div className="mb-8">
+                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center justify-between">
+                            <span>Preview (First 10 Records)</span>
+                            <span className="text-xs font-normal text-slate-500">Full results in export</span>
+                        </h4>
+                        <div className="overflow-x-auto border border-border-light dark:border-border-dark rounded-lg">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 border-b border-border-light dark:border-border-dark">
+                                    <tr>
+                                        <th className="px-4 py-3 whitespace-nowrap">accident_risk</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Road Type</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Lanes</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Curvature</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Speed Limit</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Lighting</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Weather</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Signs</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Public</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Time</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Holiday</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">School</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Prev. Accidents</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                    {batchResults.predictions.slice(0, 10).map((row, idx) => (
+                                        <tr key={idx} className={`transition-colors 
+                                            ${row.error ? 'bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-200/50' :
+                                                row.risk_level === 'low' ? 'bg-emerald-50/50 dark:bg-emerald-900/10 hover:bg-emerald-100/50' :
+                                                    row.risk_level === 'medium' ? 'bg-yellow-50/50 dark:bg-yellow-900/10 hover:bg-yellow-100/50' :
+                                                        'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/50'}`}>
+                                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                                                {row.error ? (
+                                                    <span className="text-xs text-red-500 font-normal" title={row.error}>ERROR</span>
+                                                ) : (
+                                                    row.accident_risk?.toFixed(4)
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize whitespace-nowrap">{row.input_data.road_type}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.num_lanes}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.curvature}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.speed_limit} mph</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize whitespace-nowrap">{row.input_data.lighting}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize whitespace-nowrap">{row.input_data.weather}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.road_signs_present ? 'Yes' : 'No'}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.public_road ? 'Yes' : 'No'}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize whitespace-nowrap">{row.input_data.time_of_day}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.holiday ? 'Yes' : 'No'}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.school_season ? 'Yes' : 'No'}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.input_data.num_reported_accidents}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <button onClick={() => {
+                            const headers = [
+                                'road_type', 'num_lanes', 'curvature', 'speed_limit', 'lighting',
+                                'weather', 'road_signs_present', 'public_road', 'time_of_day',
+                                'holiday', 'school_season', 'num_reported_accidents',
+                                'accident_risk'
+                            ];
+
+                            const csvContent = [
+                                headers.join(','),
+                                ...batchResults.predictions.map(row => {
+                                    const data = row.input_data;
+                                    return [
+                                        data.road_type,
+                                        data.num_lanes,
+                                        data.curvature,
+                                        data.speed_limit,
+                                        data.lighting,
+                                        data.weather,
+                                        data.road_signs_present,
+                                        data.public_road,
+                                        data.time_of_day,
+                                        data.holiday,
+                                        data.school_season,
+                                        data.num_reported_accidents,
+                                        row.error ? '' : row.accident_risk
+                                    ].join(',');
+                                })
+                            ].join('\n');
+
+                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(blob);
+                            link.download = `prediction_results_${new Date().toISOString().split('T')[0]}.csv`;
+                            link.click();
+                        }}
+                            className="flex-1 py-2 px-4 bg-primary hover:bg-primary-dark text-white rounded-lg shadow transition-all flex items-center justify-center gap-2">
+                            <span className="material-icons-round">download</span>
+                            Export Results
+                        </button>
+
+                        <button onClick={() => { setBatchResults(null); setFile(null); }}
+                            className="flex-1 py-2 px-4 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors">
+                            ← Upload Another File
+                        </button>
+                    </div>
                 </div>
             )}
         </main>

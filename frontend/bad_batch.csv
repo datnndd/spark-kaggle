@@ -1,0 +1,4 @@
+road_type,num_lanes,curvature,speed_limit,lighting,weather,road_signs_present,public_road,time_of_day,holiday,school_season,num_reported_accidents
+urban,2,0.1,35,daylight,clear,true,true,afternoon,false,true,0
+rural,two,0.5,50,night,rainy,false,true,night,false,false,2
+highway,3,0.05,200,daylight,clear,true,true,morning,false,false,1

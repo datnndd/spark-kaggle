@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Optional: Mount source for development (remove for prod)
+      - ./backend/app:/app/app
+      - ./backend/run.py:/app/run.py
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    # Note: For real production, you'd use a reverse proxy (like Nginx conf) 
+    # to route /api requests to 'backend:8000'. 
+    # For simple local use, the frontend JS makes requests to localhost:8000
+    # which works because the user's browser (host) maps 8000 to the backend container.
